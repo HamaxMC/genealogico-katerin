@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Árbol Genealógico — Katerin Tatiana Pardo Hernández</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Libre+Franklin:wght@300;400;500;600;700&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:#122019;
+  --bg-deep-2:#0e1a14;
+  --paper:#f4ecd8;
+  --paper-edge:#e3d3a8;
+  --paper-shadow:#00000055;
+  --ink:#25301f;
+  --ink-soft:#4c5745;
+  --gold:#c79a3c;
+  --gold-soft:#e3c583;
+  --teal:#2e6e63;
+  --teal-soft:#8fc4b8;
+  --rose:#b0503c;
+  --rose-soft:#e2a48f;
+  --muted:#9fae97;
+  --line:#3a5240;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:var(--bg-deep);
+  background-image:
+    radial-gradient(circle at 15% 10%, #1a3327 0%, transparent 45%),
+    radial-gradient(circle at 85% 30%, #1a3327 0%, transparent 40%);
+  color:var(--paper);
+  font-family:'Libre Franklin', sans-serif;
+  overflow-x:hidden;
+}
+h1,h2,h3,.display{font-family:'Fraunces', serif;}
+.hand{font-family:'Caveat', cursive;}
+
+/* ---------- decorative trunk ---------- */
+.trunk-wrap{position:absolute; top:0; left:50%; width:6px; transform:translateX(-50%); height:100%; z-index:0; pointer-events:none;}
+.trunk-line{width:100%; height:100%; background:linear-gradient(180deg, var(--gold) 0%, var(--teal) 35%, var(--gold) 65%, var(--rose) 100%); opacity:.35; border-radius:4px;}
+
+/* ---------- hero ---------- */
+.hero{
+  position:relative;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:40px 20px;
+  overflow:hidden;
+}
+.leaf{position:absolute; font-size:28px; opacity:.5; animation:drift 14s linear infinite; filter:saturate(0.8);}
+@keyframes drift{
+  0%{transform:translateY(-10vh) translateX(0) rotate(0deg); opacity:0;}
+  10%{opacity:.55;}
+  100%{transform:translateY(110vh) translateX(40px) rotate(300deg); opacity:0;}
+}
+.eyebrow{
+  font-family:'Caveat', cursive;
+  font-size:1.6rem;
+  color:var(--gold-soft);
+  letter-spacing:.5px;
+  margin-bottom:6px;
+  opacity:0;
+  animation:riseIn .9s ease forwards .1s;
+}
+.hero h1{
+  font-size:clamp(2.4rem, 6vw, 4.6rem);
+  font-weight:600;
+  line-height:1.05;
+  margin:0 0 18px;
+  color:var(--paper);
+  opacity:0;
+  animation:riseIn .9s ease forwards .3s;
+}
+.hero h1 span{color:var(--gold-soft); font-style:italic; font-weight:500;}
+.hero p{
+  max-width:620px;
+  color:var(--muted);
+  font-size:1.05rem;
+  line-height:1.6;
+  opacity:0;
+  animation:riseIn .9s ease forwards .5s;
+}
+@keyframes riseIn{from{opacity:0; transform:translateY(18px);} to{opacity:1; transform:translateY(0);}}
+.hero-stats{
+  display:flex; gap:28px; margin-top:34px; flex-wrap:wrap; justify-content:center;
+  opacity:0; animation:riseIn .9s ease forwards .7s;
+}
+.hero-stats div{text-align:center;}
+.hero-stats .num{font-family:'Fraunces',serif; font-size:2rem; color:var(--gold-soft);}
+.hero-stats .lbl{font-size:.72rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);}
+.scroll-cue{
+  margin-top:48px; font-size:.8rem; color:var(--muted); letter-spacing:2px; text-transform:uppercase;
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  opacity:0; animation:riseIn .9s ease forwards .9s;
+}
+.scroll-cue .arrow{animation:bounce 1.8s ease-in-out infinite;}
+@keyframes bounce{0%,100%{transform:translateY(0);} 50%{transform:translateY(8px);}}
+
+/* ---------- legend / search bar ---------- */
+.toolbar{
+  position:sticky; top:0; z-index:50;
+  backdrop-filter:blur(10px);
+  background:#0e1a14cc;
+  border-bottom:1px solid var(--line);
+  padding:12px 20px;
+  display:flex; align-items:center; justify-content:center; gap:22px; flex-wrap:wrap;
+}
+.legend{display:flex; gap:16px; flex-wrap:wrap; align-items:center;}
+.legend-item{display:flex; align-items:center; gap:6px; font-size:.78rem; color:var(--muted);}
+.dot{width:10px; height:10px; border-radius:50%; display:inline-block;}
+.dot.materna{background:var(--teal-soft);}
+.dot.paterna{background:var(--gold-soft);}
+.dot.centro{background:var(--rose-soft);}
+#search{
+  background:#1a2c22; border:1px solid var(--line); color:var(--paper);
+  padding:8px 14px; border-radius:20px; font-family:'Libre Franklin'; font-size:.85rem;
+  outline:none; min-width:200px; transition:border-color .2s, box-shadow .2s;
+}
+#search:focus{border-color:var(--gold-soft); box-shadow:0 0 0 3px #c79a3c33;}
+#search::placeholder{color:var(--muted);}
+
+/* ---------- generation sections ---------- */
+.generation{position:relative; z-index:1; padding:90px 20px 30px; max-width:1180px; margin:0 auto;}
+.gen-head{text-align:center; margin-bottom:46px;}
+.gen-head .tag{font-family:'Caveat', cursive; font-size:1.3rem; color:var(--gold-soft);}
+.gen-head h2{font-size:clamp(1.6rem,3.4vw,2.4rem); margin:4px 0 10px; font-weight:600;}
+.gen-head p{color:var(--muted); max-width:560px; margin:0 auto; font-size:.92rem; line-height:1.6;}
+.node-marker{
+  width:16px; height:16px; border-radius:50%; background:var(--bg-deep);
+  border:3px solid var(--gold-soft); margin:0 auto 18px;
+  box-shadow:0 0 0 6px #12201933;
+}
+
+.card-grid{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(230px,1fr)); gap:22px;
+}
+.cluster{margin-bottom:38px;}
+.cluster-label{
+  font-family:'Caveat', cursive; font-size:1.25rem; color:var(--teal-soft);
+  margin:0 0 14px 4px; display:flex; align-items:center; gap:8px;
+}
+.cluster-label::before{content:''; width:26px; height:1px; background:var(--line);}
+
+/* ---------- person card ---------- */
+.person-card{
+  background:var(--paper);
+  border-radius:6px;
+  padding:20px 18px 18px;
+  position:relative;
+  color:var(--ink);
+  cursor:pointer;
+  box-shadow:0 10px 24px -12px #00000070, 0 2px 0 var(--paper-edge) inset;
+  border:1px solid var(--paper-edge);
+  opacity:0; transform:translateY(26px) rotate(-1deg);
+  transition:transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s;
+}
+.person-card.visible{animation:cardIn .6s cubic-bezier(.2,.8,.2,1) forwards;}
+@keyframes cardIn{
+  from{opacity:0; transform:translateY(26px) rotate(-1deg);}
+  to{opacity:1; transform:translateY(0) rotate(0deg);}
+}
+.person-card:hover{
+  transform:translateY(-6px) rotate(.4deg);
+  box-shadow:0 18px 34px -14px #000000a0, 0 2px 0 var(--paper-edge) inset;
+}
+.person-card::before{
+  content:''; position:absolute; top:8px; right:8px; width:9px; height:9px; border-radius:50%;
+}
+.person-card.materna::before{background:var(--teal);}
+.person-card.paterna::before{background:var(--gold);}
+.person-card.centro::before{background:var(--rose);}
+.person-card.fallecido{filter:sepia(.25) saturate(.75);}
+.avatar{
+  width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-family:'Fraunces',serif; font-size:1.3rem; font-weight:600; color:#fff; margin-bottom:12px;
+  border:3px solid var(--paper);
+  box-shadow:0 0 0 1px var(--paper-edge);
+}
+.person-card.materna .avatar{background:linear-gradient(135deg,var(--teal),#1c4a41);}
+.person-card.paterna .avatar{background:linear-gradient(135deg,var(--gold),#8a6620);}
+.person-card.centro .avatar{background:linear-gradient(135deg,var(--rose),#7c3524);}
+.person-card h3{margin:0 0 3px; font-size:1.02rem; line-height:1.2; font-weight:600;}
+.person-card .rel{font-family:'Caveat',cursive; font-size:1.05rem; color:var(--ink-soft);}
+.card-mini{margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;}
+.mini-badge{
+  font-size:.66rem; letter-spacing:.4px; text-transform:uppercase; padding:3px 7px;
+  border-radius:10px; background:#00000012; color:var(--ink-soft); font-weight:600;
+}
+.card-hint{margin-top:12px; font-size:.72rem; color:var(--ink-soft); opacity:.7; font-style:italic;}
+
+.highlight-pulse{animation:pulseGlow 1.8s ease;}
+@keyframes pulseGlow{
+  0%{box-shadow:0 0 0 0 #c79a3caa;}
+  30%{box-shadow:0 0 0 14px #c79a3c00;}
+  100%{box-shadow:0 10px 24px -12px #00000070;}
+}
+
+/* ---------- modal ---------- */
+.overlay{
+  position:fixed; inset:0; background:#0a140fcc; backdrop-filter:blur(6px);
+  display:flex; align-items:center; justify-content:center; z-index:200;
+  opacity:0; pointer-events:none; transition:opacity .25s;
+  padding:20px;
+}
+.overlay.open{opacity:1; pointer-events:auto;}
+.modal{
+  background:var(--paper); color:var(--ink); max-width:560px; width:100%;
+  border-radius:10px; padding:32px 30px 28px; position:relative;
+  max-height:88vh; overflow-y:auto;
+  transform:scale(.92) translateY(10px); transition:transform .3s cubic-bezier(.2,.8,.2,1);
+  box-shadow:0 30px 60px -20px #000000a0;
+}
+.overlay.open .modal{transform:scale(1) translateY(0);}
+.modal-close{
+  position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:50%;
+  border:none; background:#00000012; color:var(--ink); font-size:1.1rem; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; transition:background .2s;
+}
+.modal-close:hover{background:#00000022;}
+.modal-head{display:flex; gap:16px; align-items:center; margin-bottom:6px;}
+.modal .avatar{width:64px; height:64px; font-size:1.5rem; margin-bottom:0; flex-shrink:0;}
+.modal h2{margin:0 0 2px; font-size:1.5rem;}
+.modal .rel{font-family:'Caveat',cursive; font-size:1.2rem; color:var(--ink-soft);}
+.modal-divider{height:1px; background:var(--paper-edge); margin:18px 0;}
+.fields{display:grid; grid-template-columns:1fr 1fr; gap:14px 20px; margin-bottom:6px;}
+.field .k{font-size:.68rem; text-transform:uppercase; letter-spacing:.6px; color:var(--ink-soft); margin-bottom:3px;}
+.field .v{font-size:.92rem; line-height:1.4;}
+.field.full{grid-column:1 / -1;}
+.rel-links{display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;}
+.rel-link{
+  font-size:.78rem; padding:6px 12px; border-radius:14px; background:var(--ink); color:var(--paper);
+  border:none; cursor:pointer; transition:background .2s, transform .2s;
+}
+.rel-link:hover{background:var(--rose); transform:translateY(-2px);}
+
+/* ---------- reveal for headings ---------- */
+.reveal{opacity:0; transform:translateY(20px); transition:opacity .7s ease, transform .7s ease;}
+.reveal.visible{opacity:1; transform:translateY(0);}
+
+/* ---------- footer ---------- */
+footer{
+  text-align:center; padding:60px 20px 50px; color:var(--muted); font-size:.85rem; position:relative; z-index:1;
+}
+footer .hand{font-size:1.4rem; color:var(--gold-soft); display:block; margin-bottom:6px;}
+
+@media (max-width:640px){
+  .fields{grid-template-columns:1fr;}
+  .trunk-wrap{left:14px; transform:none;}
+  .node-marker{margin-left:8px;}
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important;}
+}
+</style>
+</head>
+<body>
+
+<div class="trunk-wrap"><div class="trunk-line"></div></div>
+
+<!-- HERO -->
+<section class="hero">
+  <span class="leaf" style="left:12%; animation-delay:0s;">🍃</span>
+  <span class="leaf" style="left:28%; animation-delay:3s; font-size:20px;">🍂</span>
+  <span class="leaf" style="left:68%; animation-delay:6s;">🍃</span>
+  <span class="leaf" style="left:82%; animation-delay:2s; font-size:22px;">🍂</span>
+  <span class="leaf" style="left:50%; animation-delay:9s; font-size:18px;">🍃</span>
+  <div class="eyebrow hand">Un proyecto escolar de raíces profundas</div>
+  <h1>Árbol Genealógico de<br><span>Katerin Tatiana Pardo Hernández</span></h1>
+  <p>Cuatro generaciones, dos apellidos y una sola historia. Desplázate hacia abajo para conocer, ficha a ficha, a la familia que hizo posible que Katerin, de 15 años, esté hoy aquí.</p>
+  <div class="hero-stats">
+    <div><div class="num" id="statTotal">30</div><div class="lbl">Familiares</div></div>
+    <div><div class="num">4</div><div class="lbl">Generaciones</div></div>
+    <div><div class="num">2</div><div class="lbl">Apellidos raíz</div></div>
+  </div>
+  <div class="scroll-cue">Descubre el árbol<span class="arrow">↓</span></div>
+</section>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <input id="search" type="text" placeholder="Buscar por nombre o parentesco…">
+  <div class="legend">
+    <span class="legend-item"><span class="dot materna"></span>Rama materna · Hernández Ariza</span>
+    <span class="legend-item"><span class="dot paterna"></span>Rama paterna · Pardo Güiza</span>
+    <span class="legend-item"><span class="dot centro"></span>Katerin y hermanos</span>
+  </div>
+</div>
+
+<main id="tree"></main>
+
+<footer>
+  <span class="hand">Familia Pardo Hernández 🌿</span>
+</footer>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+/* ================= DATA ================= */
+const people = [
+  // ---- Bisabuelos maternos ----
+  {id:'lucila', name:'Lucila Morales', parentesco:'Bisabuela materna', branch:'materna', gen:1,
+   place:'Barrancabermeja, Santander', blood:'O+', age:'Falleció a los 89 años', fallecido:true,
+   physical:'Se le recuerda de baja estatura, cabello blanco muy largo que trenzaba cada noche y manos siempre oliendo a café recién colado.',
+   health:'En vida convivió con osteoporosis. Falleció por causas naturales propias de la edad.', parents:[]},
+  {id:'antonio_ariza', name:'Antonio Ariza', parentesco:'Bisabuelo materno', branch:'materna', gen:1,
+   place:'Barrancabermeja, Santander', blood:'A+', age:'Falleció a los 91 años', fallecido:true,
+   physical:'Hombre corpulento, de manos grandes curtidas por el trabajo del campo y voz pausada.',
+   health:'Vivió con hipertensión controlada. Falleció por causas naturales.', parents:[]},
+
+  // ---- Bisabuelos paternos ----
+  {id:'ana_lucia', name:'Ana Lucía Güiza', parentesco:'Bisabuela paterna', branch:'paterna', gen:1,
+   place:'San Gil, Santander', blood:'B+', age:'Falleció a los 85 años', fallecido:true,
+   physical:'Menuda, de ojos claros y cabello recogido; tras enviudar vistió siempre de negro.',
+   health:'En vida convivió con diabetes tipo 2. Falleció por causas naturales.', parents:[]},
+  {id:'alberto_pardo', name:'Alberto Pardo', parentesco:'Bisabuelo paterno', branch:'paterna', gen:1,
+   place:'Vélez, Santander', blood:'O-', age:'Falleció a los 88 años', fallecido:true,
+   physical:'Alto y delgado, recordado por su sombrero de paño y su bastón de guayacán tallado a mano.',
+   health:'Vivió con pérdida auditiva progresiva en su vejez. Falleció por causas naturales.', parents:[]},
+
+  // ---- Abuelos maternos ----
+  {id:'ana_celia', name:'Ana Celia Ariza Molares', parentesco:'Abuela materna', branch:'materna', gen:2,
+   place:'Barrancabermeja, Santander', blood:'A-', age:63,
+   physical:'Baja estatura, cabello blanco recogido en moño y manos curtidas de toda una vida tejiendo.',
+   health:'Diabetes tipo 2 controlada con dieta. Usa lentes bifocales. Sin alergias conocidas.', parents:['lucila','antonio_ariza']},
+  {id:'carlos_julio', name:'Carlos Julio Hernández Duarte', parentesco:'Abuelo materno', branch:'materna', gen:2,
+   place:'Barrancabermeja, Santander', blood:'O+', age:66,
+   physical:'Complexión gruesa, calvicie parcial y una voz fuerte de vendedor de toda la vida.',
+   health:'Hipertensión controlada con medicamento diario. Alérgico a los mariscos.', parents:[]},
+
+  // ---- Abuelos paternos ----
+  {id:'maria_aliz', name:'María Aliz Güiza Morales', parentesco:'Abuela paterna', branch:'paterna', gen:2,
+   place:'San Gil, Santander', blood:'B-', age:68,
+   physical:'Estatura media, cabello canoso y ondulado, siempre con un pañuelo de colores al cuello.',
+   health:'Artritis en las manos. Usa lentes para leer. Sin alergias conocidas.', parents:[]},
+  {id:'marcos_antonio', name:'Marcos Antonio Pardo Aguilar', parentesco:'Abuelo paterno', branch:'paterna', gen:2,
+   place:'Vélez, Santander', blood:'AB+', age:70,
+   physical:'Alto y delgado, con su infaltable sombrero de paño; camina apoyado en un bastón.',
+   health:'Colesterol alto controlado. Condición genética: predisposición familiar a la hipertensión.', parents:['ana_lucia','alberto_pardo']},
+
+  // ---- Padres ----
+  {id:'leydi', name:'Leydi Hernández', parentesco:'Madre', branch:'materna', gen:3,
+   place:'Barrancabermeja, Santander', blood:'A+', age:38,
+   physical:'Estatura baja, cabello negro liso recogido casi siempre en cola, piel trigueña y manos siempre ocupadas en la cocina.',
+   health:'Controla presión arterial ligeramente alta con dieta baja en sal. Sin alergias conocidas.', parents:['ana_celia','carlos_julio']},
+  {id:'luis_p', name:'Luis Pardo Güiza', parentesco:'Padre', branch:'paterna', gen:3,
+   place:'San Gil, Santander', blood:'O+', age:41,
+   physical:'Alto, contextura robusta, bigote poblado y una voz grave que se escucha desde la cocina.',
+   health:'Alérgico a la penicilina. Usa gafas para conducir de noche.', parents:['maria_aliz','marcos_antonio']},
+
+  // ---- Tíos maternos ----
+  {id:'tio_camilo', name:'Camilo Hernández Ariza', parentesco:'Tío materno', branch:'materna', gen:3,
+   place:'Barrancabermeja, Santander', blood:'A+', age:42,
+   physical:'Contextura fuerte, cabello corto y casi siempre con gorra.',
+   health:'Sin enfermedades crónicas. Alérgico al polen.', parents:['ana_celia','carlos_julio']},
+  {id:'tio_jhonatan', name:'Jhonatan Hernández Ariza', parentesco:'Tío materno', branch:'materna', gen:3,
+   place:'Barrancabermeja, Santander', blood:'O+', age:39,
+   physical:'Delgado, alto, de barba cerrada bien cuidada.',
+   health:'Gastritis crónica controlada con dieta. Sin alergias conocidas.', parents:['ana_celia','carlos_julio']},
+  {id:'tio_alex', name:'Alex Hernández Ariza', parentesco:'Tío materno', branch:'materna', gen:3,
+   place:'Bucaramanga, Santander', blood:'B+', age:36,
+   physical:'Estatura media, cabello rapado y tatuajes en ambos brazos.',
+   health:'Usa gafas para el computador (miopía leve). Sin otras condiciones.', parents:['ana_celia','carlos_julio']},
+  {id:'tio_luis_h', name:'Luis Hernández Ariza', parentesco:'Tío materno', branch:'materna', gen:3,
+   place:'Barrancabermeja, Santander', blood:'AB-', age:44,
+   physical:'Robusto, bigote grueso, con una voz muy parecida a la de su padre.',
+   health:'Hipertensión leve controlada. Sin alergias conocidas.', parents:['ana_celia','carlos_julio']},
+
+  // ---- Tía paterna ----
+  {id:'tia_yamile', name:'Yamile Pardo Güiza', parentesco:'Tía paterna', branch:'paterna', gen:3,
+   place:'San Gil, Santander', blood:'A+', age:45,
+   physical:'Estatura media, cabello corto teñido de rojizo y sonrisa amplia.',
+   health:'Hipotiroidismo controlado con medicamento. Sin alergias conocidas.', parents:['maria_aliz','marcos_antonio']},
+
+  // ---- Katerin y hermanos ----
+  {id:'katerin', name:'Katerin Tatiana Pardo Hernández', parentesco:'Ella misma — creadora del árbol', branch:'centro', gen:4,
+   place:'Bucaramanga, Santander', blood:'O+', age:15,
+   physical:'Estatura media, cabello castaño oscuro y ondulado hasta los hombros, ojos color miel y sonrisa fácil.',
+   health:'Usa gafas para leer y el tablero (miopía leve). Sin alergias ni enfermedades crónicas registradas.', parents:['leydi','luis_p'], destacado:true},
+  {id:'keyner', name:'Keyner Johan Pardo Hernández', parentesco:'Hermano', branch:'centro', gen:4,
+   place:'Bucaramanga, Santander', blood:'O+', age:12,
+   physical:'Delgado, cabello corto y rizado, casi nunca se le ve sin un balón bajo el brazo.',
+   health:'Asma leve controlada con inhalador. Sin otras condiciones registradas.', parents:['leydi','luis_p']},
+  {id:'jhoser', name:'Jhoser Mogollón Hernández', parentesco:'Hermano materno', branch:'centro', gen:4,
+   place:'Barrancabermeja, Santander', blood:'B+', age:19,
+   physical:'Alto, complexión atlética, con un pequeño tatuaje en el antebrazo.',
+   health:'Sin enfermedades ni alergias registradas. Juega fútbol semanalmente.', parents:['leydi']},
+
+  // ---- Primos: hijos de Jhonatan ----
+  {id:'saray', name:'Saray Hernández León', parentesco:'Prima — hija de Jhonatan', branch:'materna', gen:4,
+   place:'Barrancabermeja, Santander', blood:'O+', age:14,
+   physical:'Cabello largo y liso, estatura media, fanática del color morado.',
+   health:'Alérgica a los ácaros; usa antihistamínico ocasionalmente.', parents:['tio_jhonatan']},
+
+  // ---- Primos: hijos de Luis Hernández ----
+  {id:'yan_carlos', name:'Yan Carlos Hernández Torres', parentesco:'Primo — hijo de Luis H.', branch:'materna', gen:4,
+   place:'Bucaramanga, Santander', blood:'A+', age:20,
+   physical:'Alto, contextura atlética y cabello corto.',
+   health:'Sin enfermedades ni alergias registradas.', parents:['tio_luis_h']},
+  {id:'natalia', name:'Natalia Hernández Torres', parentesco:'Prima — hija de Luis H.', branch:'materna', gen:4,
+   place:'Bucaramanga, Santander', blood:'O-', age:17,
+   physical:'Estatura media, cabello castaño con mechas, le encanta el maquillaje.',
+   health:'Rinitis alérgica estacional. Usa gafas para estudiar.', parents:['tio_luis_h']},
+  {id:'yalena', name:'Yalena Hernández Torres', parentesco:'Prima — hija de Luis H.', branch:'materna', gen:4,
+   place:'Bucaramanga, Santander', blood:'B+', age:13,
+   physical:'Delgada, cabello rizado que recoge en dos moños.',
+   health:'Sin condiciones médicas relevantes registradas.', parents:['tio_luis_h']},
+  {id:'samara', name:'Samara Hernández Torres', parentesco:'Prima — hija de Luis H.', branch:'materna', gen:4,
+   place:'Bucaramanga, Santander', blood:'O+', age:9,
+   physical:'Pequeña de estatura, muy sonriente, siempre con lazos en el cabello.',
+   health:'Asma leve; usa inhalador de rescate ocasionalmente.', parents:['tio_luis_h']},
+
+  // ---- Primos: hijos de Camilo ----
+  {id:'sebastian', name:'Sebastián Hernández Hernández', parentesco:'Primo — hijo de Camilo', branch:'materna', gen:4,
+   place:'Barrancabermeja, Santander', blood:'A-', age:16,
+   physical:'Alto, delgado, cabello corto, fanático del fútbol.',
+   health:'Alérgico a los frutos secos.', parents:['tio_camilo']},
+  {id:'santiago', name:'Santiago Hernández', parentesco:'Primo — hijo de Camilo', branch:'materna', gen:4,
+   place:'Barrancabermeja, Santander', blood:'O+', age:11,
+   physical:'Contextura media, muy inquieto y curioso.',
+   health:'Sin enfermedades ni alergias conocidas.', parents:['tio_camilo']},
+  {id:'edwar', name:'Edwar Hernández Ariza', parentesco:'Primo — hijo de Camilo', branch:'materna', gen:4,
+   place:'Barrancabermeja, Santander', blood:'B+', age:8,
+   physical:'Pequeño, cabello rizado, siempre con un juguete en la mano.',
+   health:'Sin condiciones médicas relevantes registradas.', parents:['tio_camilo']},
+
+  // ---- Primos: hijos de Alex ----
+  {id:'vicky', name:'Vicky Hernández Hernández', parentesco:'Prima — hija de Alex', branch:'materna', gen:4,
+   place:'Bucaramanga, Santander', blood:'AB+', age:18,
+   physical:'Estatura media, cabello negro liso, apasionada por el dibujo.',
+   health:'Usa lentes por miopía moderada. Sin alergias conocidas.', parents:['tio_alex']},
+  {id:'daniel', name:'Daniel Ariza Hernández', parentesco:'Primo — hijo de Alex', branch:'materna', gen:4,
+   place:'Bucaramanga, Santander', blood:'O+', age:15,
+   physical:'Delgado, alto para su edad, cabello corto.',
+   health:'Sin enfermedades ni alergias registradas.', parents:['tio_alex']},
+
+  // ---- Primos: hijos de Yamile ----
+  {id:'yei', name:'Yei González Pardo', parentesco:'Prima — hija de Yamile', branch:'paterna', gen:4,
+   place:'San Gil, Santander', blood:'O+', age:22,
+   physical:'Alta, cabello largo ondulado, apasionada por la moda.',
+   health:'Sin enfermedades ni alergias conocidas.', parents:['tia_yamile']},
+  {id:'anner', name:'Anner González Pardo', parentesco:'Primo — hijo de Yamile', branch:'paterna', gen:4,
+   place:'San Gil, Santander', blood:'B-', age:19,
+   physical:'Contextura media, cabello corto, aficionado a la música.',
+   health:'Alérgico al polvo; usa antihistamínico en temporada seca.', parents:['tia_yamile']}
+];
+
+const byId = Object.fromEntries(people.map(p=>[p.id,p]));
+function getChildren(id){ return people.filter(p=>p.parents && p.parents.includes(id)); }
+function initials(name){
+  const parts = name.split(' ').filter(w=>w.length>1);
+  return (parts[0][0] + (parts[1]?parts[1][0]:'')).toUpperCase();
+}
+function formatBlood(b){
+  const rh = b.slice(-1)==='+' ? 'Positivo (Rh+)' : 'Negativo (Rh−)';
+  const tipo = b.slice(0,-1);
+  return `Tipo ${tipo}, RH ${rh}`;
+}
+function formatAge(a){ return typeof a === 'number' ? `${a} años` : a; }
+
+/* ================= RENDER ================= */
+const genInfo = {
+  4: {tag:'Generación actual', title:'Katerin, sus hermanos y primos', desc:'El presente del árbol: quienes hoy comparten juegos, tareas y reuniones familiares.'},
+  3: {tag:'Una generación atrás', title:'Padres y tíos', desc:'Quienes formaron los hogares donde creció esta generación.'},
+  2: {tag:'Dos generaciones atrás', title:'Abuelos', desc:'Los cimientos directos de la familia: dos apellidos, dos historias unidas.'},
+  1: {tag:'Las raíces', title:'Bisabuelos', desc:'De donde viene todo. Algunos ya no están, pero su historia sigue creciendo en cada rama.'}
+};
+
+function personCard(p){
+  const div = document.createElement('div');
+  div.className = `person-card ${p.branch}${p.fallecido?' fallecido':''}`;
+  div.dataset.id = p.id;
+  div.dataset.search = (p.name+' '+p.parentesco).toLowerCase();
+  div.innerHTML = `
+    <div class="avatar">${initials(p.name)}</div>
+    <h3>${p.name}</h3>
+    <div class="rel">${p.parentesco}</div>
+    <div class="card-mini">
+      <span class="mini-badge">${p.place.split(',')[0]}</span>
+      <span class="mini-badge">${p.blood}</span>
+      <span class="mini-badge">${formatAge(p.age)}</span>
+    </div>
+    <div class="card-hint">Toca para ver la ficha completa →</div>
+  `;
+  div.addEventListener('click', ()=>openModal(p.id));
+  return div;
+}
+
+function buildTree(){
+  const main = document.getElementById('tree');
+  [4,3,2,1].forEach(genNum=>{
+    const info = genInfo[genNum];
+    const section = document.createElement('section');
+    section.className = 'generation';
+    section.innerHTML = `
+      <div class="node-marker reveal"></div>
+      <div class="gen-head reveal">
+        <div class="tag hand">${info.tag}</div>
+        <h2>${info.title}</h2>
+        <p>${info.desc}</p>
+      </div>
+    `;
+    const groupWrap = document.createElement('div');
+
+    if(genNum===4){
+      const centerCluster = document.createElement('div');
+      centerCluster.className = 'cluster';
+      centerCluster.innerHTML = `<div class="cluster-label">Katerin y hermanos</div>`;
+      const grid = document.createElement('div'); grid.className='card-grid';
+      people.filter(p=>p.gen===4 && p.branch==='centro').forEach(p=>grid.appendChild(personCard(p)));
+      centerCluster.appendChild(grid);
+      groupWrap.appendChild(centerCluster);
+
+      const cousinGroups = [
+        ['tio_jhonatan','Primos · hijos de Jhonatan'],
+        ['tio_luis_h','Primos · hijos de Luis Hernández'],
+        ['tio_camilo','Primos · hijos de Camilo'],
+        ['tio_alex','Primos · hijos de Alex'],
+        ['tia_yamile','Primos · hijos de Yamile']
+      ];
+      cousinGroups.forEach(([parentId,label])=>{
+        const kids = getChildren(parentId);
+        if(!kids.length) return;
+        const cluster = document.createElement('div'); cluster.className='cluster';
+        cluster.innerHTML = `<div class="cluster-label">${label}</div>`;
+        const grid = document.createElement('div'); grid.className='card-grid';
+        kids.forEach(k=>grid.appendChild(personCard(k)));
+        cluster.appendChild(grid);
+        groupWrap.appendChild(cluster);
+      });
+    } else if(genNum===3){
+      const clusters = [
+        [['leydi','luis_p'],'Padres'],
+        [['tio_camilo','tio_jhonatan','tio_alex','tio_luis_h'],'Hermanos de mamá'],
+        [['tia_yamile'],'Hermana de papá']
+      ];
+      clusters.forEach(([ids,label])=>{
+        const cluster = document.createElement('div'); cluster.className='cluster';
+        cluster.innerHTML = `<div class="cluster-label">${label}</div>`;
+        const grid = document.createElement('div'); grid.className='card-grid';
+        ids.forEach(id=>grid.appendChild(personCard(byId[id])));
+        cluster.appendChild(grid);
+        groupWrap.appendChild(cluster);
+      });
+    } else if(genNum===2){
+      const clusters = [
+        [['ana_celia','carlos_julio'],'Abuelos maternos'],
+        [['maria_aliz','marcos_antonio'],'Abuelos paternos']
+      ];
+      clusters.forEach(([ids,label])=>{
+        const cluster = document.createElement('div'); cluster.className='cluster';
+        cluster.innerHTML = `<div class="cluster-label">${label}</div>`;
+        const grid = document.createElement('div'); grid.className='card-grid';
+        ids.forEach(id=>grid.appendChild(personCard(byId[id])));
+        cluster.appendChild(grid);
+        groupWrap.appendChild(cluster);
+      });
+    } else if(genNum===1){
+      const clusters = [
+        [['lucila','antonio_ariza'],'Bisabuelos maternos'],
+        [['ana_lucia','alberto_pardo'],'Bisabuelos paternos']
+      ];
+      clusters.forEach(([ids,label])=>{
+        const cluster = document.createElement('div'); cluster.className='cluster';
+        cluster.innerHTML = `<div class="cluster-label">${label}</div>`;
+        const grid = document.createElement('div'); grid.className='card-grid';
+        ids.forEach(id=>grid.appendChild(personCard(byId[id])));
+        cluster.appendChild(grid);
+        groupWrap.appendChild(cluster);
+      });
+    }
+    section.appendChild(groupWrap);
+    main.appendChild(section);
+  });
+}
+buildTree();
+
+/* ================= MODAL ================= */
+const overlay = document.getElementById('overlay');
+const modalContent = document.getElementById('modalContent');
+
+function openModal(id){
+  const p = byId[id];
+  const parents = (p.parents||[]).map(pid=>byId[pid]).filter(Boolean);
+  const children = getChildren(id);
+
+  modalContent.innerHTML = `
+    <button class="modal-close" aria-label="Cerrar">✕</button>
+    <div class="modal-head">
+      <div class="avatar" style="background:${p.branch==='materna'?'linear-gradient(135deg,var(--teal),#1c4a41)':p.branch==='paterna'?'linear-gradient(135deg,var(--gold),#8a6620)':'linear-gradient(135deg,var(--rose),#7c3524)'}">${initials(p.name)}</div>
+      <div>
+        <h2>${p.name}</h2>
+        <div class="rel">${p.parentesco}</div>
+      </div>
+    </div>
+    <div class="modal-divider"></div>
+    <div class="fields">
+      <div class="field"><div class="k">Lugar de nacimiento</div><div class="v">${p.place}</div></div>
+      <div class="field"><div class="k">Edad</div><div class="v">${formatAge(p.age)}</div></div>
+      <div class="field"><div class="k">Tipo de sangre y RH</div><div class="v">${formatBlood(p.blood)}</div></div>
+      <div class="field"><div class="k">Rama familiar</div><div class="v">${p.branch==='materna'?'Materna — Hernández Ariza':p.branch==='paterna'?'Paterna — Pardo Güiza':'Generación central'}</div></div>
+      <div class="field full"><div class="k">Descripción física</div><div class="v">${p.physical}</div></div>
+      <div class="field full"><div class="k">Salud (enfermedades, lentes, alergias, condiciones genéticas)</div><div class="v">${p.health}</div></div>
+      ${parents.length? `<div class="field full"><div class="k">Padres</div><div class="rel-links">${parents.map(pp=>`<button class="rel-link" data-jump="${pp.id}">${pp.name}</button>`).join('')}</div></div>` : ''}
+      ${children.length? `<div class="field full"><div class="k">Hijos / descendencia registrada</div><div class="rel-links">${children.map(c=>`<button class="rel-link" data-jump="${c.id}">${c.name}</button>`).join('')}</div></div>` : ''}
+    </div>
+  `;
+  overlay.classList.add('open');
+  modalContent.querySelector('.modal-close').addEventListener('click', closeModal);
+  modalContent.querySelectorAll('.rel-link').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const targetId = btn.dataset.jump;
+      closeModal();
+      setTimeout(()=>jumpTo(targetId), 220);
+    });
+  });
+}
+function closeModal(){ overlay.classList.remove('open'); }
+overlay.addEventListener('click', e=>{ if(e.target===overlay) closeModal(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+
+function jumpTo(id){
+  const card = document.querySelector(`.person-card[data-id="${id}"]`);
+  if(!card) return;
+  card.scrollIntoView({behavior:'smooth', block:'center'});
+  card.classList.add('highlight-pulse');
+  setTimeout(()=>card.classList.remove('highlight-pulse'), 1900);
+}
+
+/* ================= SCROLL REVEAL ================= */
+const io = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.classList.add('visible');
+      io.unobserve(e.target);
+    }
+  });
+},{threshold:.15});
+document.querySelectorAll('.person-card, .reveal').forEach(el=>io.observe(el));
+
+/* ================= SEARCH ================= */
+const searchInput = document.getElementById('search');
+searchInput.addEventListener('input', ()=>{
+  const q = searchInput.value.trim().toLowerCase();
+  document.querySelectorAll('.person-card').forEach(card=>{
+    const match = !q || card.dataset.search.includes(q);
+    card.style.display = match ? '' : 'none';
+  });
+});
+</script>
+</body>
+</html>
